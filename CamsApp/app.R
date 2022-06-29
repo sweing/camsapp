@@ -18,6 +18,10 @@ data[, `:=`(month = as.integer(format(basetime, "%m")),
             year = as.integer(format(basetime, "%Y")),
             day = as.integer(format(basetime, "%d")))]
 
+
+
+data = data[variable == '365d mean']
+
 monthlyRaceName = "Monthly index race"
 yearlyRaceName = "Yearly index race"
 
@@ -46,6 +50,8 @@ ui = fluidPage(
                                           "Index (Jan 2016 = 1.0)"))),
         column(2,
                selectInput("monyear", NULL, rev(unique(data$monyear)))),
+        column(1, checkboxInput("islog", "log", FALSE),
+        verbatimTextOutput("value"))
         # column(1,
         #        selectInput("raceyear", NULL, rev(unique(data$year)))),
     ),
@@ -73,6 +79,10 @@ server = function(input, output, session) {
         input$ind
     })
     
+    logInput = reactive({
+      input$islog
+    })
+    
     monYearInput = reactive({
         input$monyear
     })
@@ -80,6 +90,8 @@ server = function(input, output, session) {
     raceYearInput= reactive({
         substr(input$monyear, 5, 8)
     })
+    
+    
     
     plot.label = reactive({
         if (indicatorInput() == "Index (Jan 2016 = 1.0)"){
@@ -98,6 +110,7 @@ server = function(input, output, session) {
     })
     
     select.df = reactive({
+        
         if(indicatorInput() == monthlyRaceName)
             data[basetime <= max(data[monyear == monYearInput()]$basetime)]
         if(indicatorInput() == yearlyRaceName)
@@ -108,38 +121,74 @@ server = function(input, output, session) {
     
     plot.df = reactive({
         if (indicatorInput() == "Index (Jan 2016 = 1.0)"){
-          tmp = select.df()[variable %in% c("365d mean")][, .(value = value/value[1], 
-                                                              basetime = basetime), 
-                                                          by = c("city_id", "name", "name_adv", "variable", "ltypes", "colors")]
-            tmp[order(name, variable, basetime)]
+          tmp = select.df()[variable %in% c("365d mean")]
+          
+          if(logInput() == TRUE){
+            tmp[, value := log(value)]
+          }
+          
+          tmp = tmp[, .(value = value/value[1], 
+                        basetime = basetime), 
+                    by = c("city_id", "name", "name_adv", "variable", "ltypes", "colors")]
+          
+          tmp[order(name, variable, basetime)]
         } else if (indicatorInput() == "Rank"){
             tmp = select.df()[variable %in% c("365d mean")]
+            
+            if(logInput() == TRUE){
+              tmp[, value := log(value)]
+            }
+            
             tmp = tmp[, value := rank(value), by = c("basetime", "variable")]
             tmp[order(name, variable, basetime)]
         } else if (indicatorInput() == "Rank change from Jan 2016 = 0"){
             tmp = select.df()[variable %in% c("365d mean")]
+            
+            if(logInput() == TRUE){
+              tmp[, value := log(value)]
+            }
+            
             tmp = tmp[, value := rank(value), by = c("basetime", "variable")]
             tmp = tmp[, .(value = value - value[1], 
                           basetime = basetime), 
                       by = c("city_id", "name", "name_adv", "variable", "ltypes", "colors")]
             tmp[order(name, variable, basetime)]
         } else if (indicatorInput() == monthlyRaceName){
-            tmp = select.df()[variable %in% c("365d mean") & year == raceYearInput()][monyear == monYearInput()][, .(value = value/value[1], 
-                                                                                                  basetime = basetime,
-                                                                                                  day = day), 
-                                                                                              by = c("city_id", "name", "name_adv", "variable", "ltypes", "colors")]
+            tmp = select.df()[variable %in% c("365d mean") & year == raceYearInput()]
+            
+            if(logInput() == TRUE){
+              tmp[, value := log(value)]
+            }
+            
+            tmp = tmp[monyear == monYearInput()][, .(value = value/value[1], 
+                                                     basetime = basetime,
+                                                     day = day), 
+                                                 by = c("city_id", "name", "name_adv", "variable", "ltypes", "colors")]
+            
             tmp[order(name, variable, basetime)]
         } else if (indicatorInput() == yearlyRaceName){
-            tmp = select.df()[variable %in% c("365d mean")][year == raceYearInput()][, .(value = value/value[1], 
-                                                                                   basetime = basetime,
-                                                                                   day = day,
-                                                                                   year = year,
-                                                                                   month = month
-                                                                                   ), 
-                                                                                                     by = c("city_id", "name", "name_adv", "variable", "ltypes", "colors")]
+            tmp = select.df()[variable %in% c("365d mean")]
+            
+            if(logInput() == TRUE){
+              tmp[, value := log(value)]
+            }
+            
+            tmp = tmp [year == raceYearInput()][, .(value = value/value[1], 
+                                                    basetime = basetime,
+                                                    day = day,
+                                                    year = year,
+                                                    month = month
+            ), 
+            by = c("city_id", "name", "name_adv", "variable", "ltypes", "colors")]
             tmp[order(name, variable, basetime)]
         } else {
-            select.df()
+            tmp = select.df()[variable %in% c("365d mean")]
+            
+            if(logInput() == TRUE){
+              tmp[, value := log(value)]
+            }
+            
+            tmp[order(name, variable, basetime)]
         }
     })
     
