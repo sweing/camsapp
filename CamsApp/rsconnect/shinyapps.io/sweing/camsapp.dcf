@@ -1,0 +1,11 @@
+name: camsapp
+title:
+username:
+account: sweing
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3438045
+bundleId: 6047611
+url: https://sweing.shinyapps.io/camsapp/
+when: 1656351378.32181
+lastSyncTime: 1656351378.32185
