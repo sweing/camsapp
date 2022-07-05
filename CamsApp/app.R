@@ -20,8 +20,8 @@ data[, `:=`(month = as.integer(format(basetime, "%m")),
             year = as.integer(format(basetime, "%Y")),
             day = as.integer(format(basetime, "%d")))]
 
-vars = c('365d moving average', 
-         'Composite moving average')
+vars = c('Composite moving average',
+         '365d moving average')
 
 #s_var = 'no2_rmean_c'
 #variable = '365d mean'
@@ -70,8 +70,9 @@ ui = fluidPage(
   fluidRow(
     column(1),
     column(8, div(tags$p(a("@decarbnow", href = "https://twitter.com/DecarbNow", target = "_blank"), "| data from ", 
-                         a("@CopernicusECMWF", href = "https://twitter.com/CopernicusECMWf", target = "_blank"), ", ", 
-                         a("Copernicus air quality COVID19 response on GitHub", href = "https://github.com/CopernicusAtmosphere/air-quality-covid19-response", target = "_blank")),
+                         a("@CopernicusECMWF", href = "https://twitter.com/CopernicusECMWf", target = "_blank"), "- ", 
+                         a("Copernicus air quality COVID19 response on GitHub", href = "https://github.com/CopernicusAtmosphere/air-quality-covid19-response", target = "_blank"), "- ",
+                         a("Project on GitHub", href = "https://github.com/sweing/camsapp", target = "_blank")),
                   style = "text-align: right;"))
   ),
   
