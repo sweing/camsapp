@@ -54,8 +54,8 @@ ui = fluidPage(
                                       yearlyRaceName,
                                       "Time series", 
                                       "Rank",
-                                      "Rank change from Jan 2017 = 0",
-                                      "Index (Jan 2017 = 1.0)"))),
+                                      "Rank change from Jan 2018 = 0",
+                                      "Index (Jan 2018 = 1.0)"))),
     column(2,
            selectInput("monyear", NULL, rev(unique(data$monyear)))),
     column(1, checkboxInput("islog", "log", FALSE),
@@ -109,11 +109,11 @@ server = function(input, output, session) {
   
   
   plot.label = reactive({
-    if (indicatorInput() == "Index (Jan 2017 = 1.0)"){
-      "surface concentration, Jan 2017 = 1.0"
+    if (indicatorInput() == "Index (Jan 2018 = 1.0)"){
+      "surface concentration, Jan 2018 = 1.0"
     } else if (indicatorInput() == "Rank"){
       "surface concentration rank"
-    } else if (indicatorInput() == "Rank change from Jan 2017 = 0"){
+    } else if (indicatorInput() == "Rank change from Jan 2018 = 0"){
       "surface concentration rank change"
     } else if (indicatorInput() == monthlyRaceName){
       "surface concentration, 1st month day = 1.0"
@@ -135,14 +135,14 @@ server = function(input, output, session) {
   })
   
   plot.df = reactive({
-    if (indicatorInput() == "Index (Jan 2017 = 1.0)"){
+    if (indicatorInput() == "Index (Jan 2018 = 1.0)"){
       tmp = select.df()[variable == varsInput()]
       
       if(logInput() == TRUE){
         tmp[, value := log(value)]
       }
       
-      tmp = tmp[, .(value = value/value[basetime == "2017-01-01"], 
+      tmp = tmp[, .(value = value/value[basetime == "2018-01-01"], 
                     basetime = basetime), 
                 by = c("city_id", "name", "name_adv", "variable", "ltypes", "colors")]
       
@@ -156,7 +156,7 @@ server = function(input, output, session) {
       
       tmp = tmp[, value := rank(value), by = c("basetime", "variable")]
       tmp[order(name, variable, basetime)]
-    } else if (indicatorInput() == "Rank change from Jan 2017 = 0"){
+    } else if (indicatorInput() == "Rank change from Jan 2018 = 0"){
       tmp = select.df()[variable == varsInput()]
       
       if(logInput() == TRUE){
@@ -164,7 +164,7 @@ server = function(input, output, session) {
       }
       
       tmp = tmp[, value := rank(value), by = c("basetime", "variable")]
-      tmp = tmp[, .(value = value - value[basetime == "2017-01-01"], 
+      tmp = tmp[, .(value = value - value[basetime == "2018-01-01"], 
                     basetime = basetime), 
                 by = c("city_id", "name", "name_adv", "variable", "ltypes", "colors")]
       tmp[order(name, variable, basetime)]
@@ -212,12 +212,12 @@ server = function(input, output, session) {
       
     } else {
       expand_days = 33 - max(select.df()[year == max(year)][variable == varsInput()][monyear == monYearInput()]$day)
-      colLines = unique(data.frame(colors = plot.df()[basetime >= "2017-01-01" & variable == varsInput() &
+      colLines = unique(data.frame(colors = plot.df()[basetime >= "2018-01-01" & variable == varsInput() &
                                                         name %in% cityInput()]$colors,
-                                   ltypes = plot.df()[basetime >= "2017-01-01" & variable == varsInput() &
+                                   ltypes = plot.df()[basetime >= "2018-01-01" & variable == varsInput() &
                                                         name %in% cityInput()]$ltypes))
       
-      gg = ggplot(plot.df()[basetime >= "2017-01-01" & variable == varsInput() & 
+      gg = ggplot(plot.df()[basetime >= "2018-01-01" & variable == varsInput() & 
                               name %in% cityInput()], 
                   aes(x = basetime, y = value, color = name, linetype = name, tooltip = name, data_id = name)) +
         geom_line_interactive(size = 1) +
@@ -225,7 +225,7 @@ server = function(input, output, session) {
         scale_linetype_manual(values = colLines$ltypes) +
         #geom_vline(aes(xintercept = as.Date("2020-03-01")), linetype = "dashed", size = 0.2) +
         # annotate("text", x = as.Date("2020-03-01"), 
-        #          y = max(plot.df()[basetime >= "2017-01-01" & variable %in% c("365d mean") & 
+        #          y = max(plot.df()[basetime >= "2018-01-01" & variable %in% c("365d mean") & 
         #                            name %in% cityInput()]$value), 
         #          label = "Mar 2020",
         #          angle = 90,
