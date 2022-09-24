@@ -28,13 +28,14 @@ vars = c('Composite moving average',
 
 #data = data[variable %in% vars & !is.na(value)]
 
+minimumRace = "Monthly race for minimum"
 monthlyRaceName = "Monthly index race"
 yearlyRaceName = "Yearly index race"
 
 set.seed(872436)
 
 color_lty_cross = data.frame(group = 1:60,
-                             ltypes = 1:6,
+                             ltypes = c(1, 2, 4, 5, 6),
                              colors = sample(rainbow(60, start = 1/6)))
 
 data = merge(data, color_lty_cross, all.x = TRUE, by = "group")
@@ -42,15 +43,22 @@ data[, monyear := paste(monthstr, year)]
 
 cities = sort(unique(data$name))
 
+cities_sel = c("Milan", "London", "Amsterdam", "Valencia", "Rome", "Birmingham", "Copenhagen", "Turin", "Munich", "Luxembourg",
+               "Brussels", "Ankara", "Hamburg", "Vienna"
+               #"Berlin", "Madrid", "Bern", "Stockholm", "Prague", "Lyon", "Ljubljana", "Paris"
+               )
+
+
 ui = fluidPage(
   fluidRow(
     column(1),
     column(2,
-           pickerInput("cities", NULL, choices = cities, options = list(`actions-box` = TRUE), multiple = TRUE, selected = cities)),
+           pickerInput("cities", NULL, choices = cities, options = list(`actions-box` = TRUE), multiple = TRUE, selected = cities_sel)),
     column(2,
            selectInput("vars", NULL, vars)),
     column(2,
-           selectInput("ind", NULL, c(monthlyRaceName,
+           selectInput("ind", NULL, c(minimumRace,
+                                      monthlyRaceName,
                                       yearlyRaceName,
                                       "Time series", 
                                       "Rank",
@@ -119,6 +127,8 @@ server = function(input, output, session) {
       "surface concentration, 1st month day = 1.0"
     } else if (indicatorInput() == yearlyRaceName){
       "surface concentration, 1st year day = 1.0"
+    } else if (indicatorInput() == minimumRace) {
+      "surface concentration, last minimum = 1.0"
     } else {
       "surface concentration [µg/m³]"
     }
@@ -126,7 +136,7 @@ server = function(input, output, session) {
   
   select.df = reactive({
     
-    if(indicatorInput() == monthlyRaceName)
+    if(indicatorInput() %in% c(monthlyRaceName, minimumRace))
       data[basetime <= max(data[monyear == monYearInput()]$basetime)]
     if(indicatorInput() == yearlyRaceName)
       data[basetime <= max(data[year == raceYearInput()]$basetime)]
@@ -181,7 +191,38 @@ server = function(input, output, session) {
                                            by = c("city_id", "name", "name_adv", "variable", "ltypes", "colors")]
       
       tmp[order(name, variable, basetime)]
-    } else if (indicatorInput() == yearlyRaceName){
+    } else if (indicatorInput() == minimumRace){
+      
+      # MINIMUM RACE
+      
+      
+      
+      tmp = select.df()[variable == varsInput()]
+      if(logInput() == TRUE){
+        tmp[, value := log(value)]
+      }
+      #print(monYearInput())
+      #print(class(monYearInput()))
+      
+      #str(tmp)
+      
+      
+      #print(as.Date(as.yearmon(monYearInput(), "%b %Y")))
+      #print(unique(tmp[basetime <= as.Date(as.yearmon(monYearInput(), "%b %Y"))]$monyear))
+      
+      tmp[, min_value := min(value[basetime <= as.Date(as.yearmon(monYearInput(), "%b %Y"))]), by = c("city_id", "name", "name_adv", "variable", "ltypes", "colors")]
+      tmp = tmp[year == raceYearInput()]
+      
+      tmp = tmp[monyear == monYearInput()][, .(value = value/min_value[1], 
+                                               basetime = basetime,
+                                               day = day), 
+                                           by = c("city_id", "name", "name_adv", "variable", "ltypes", "colors")]
+      
+      #print(tmp[basetime == max(basetime)][order(value)]$name)
+      tmp[order(name, variable, basetime)]
+      
+      
+    }else if (indicatorInput() == yearlyRaceName){
       tmp = select.df()[variable == varsInput()]
       
       if(logInput() == TRUE){
@@ -256,11 +297,61 @@ server = function(input, output, session) {
              subtitle = "Comparison of 365 days/composite moving average (log)")
       
       
-      if(indicatorInput() == monthlyRaceName){
+      if(indicatorInput() %in% c(monthlyRaceName)){
         maxDay = unique(plot.df()[day == max(day)]$basetime)
         vLineColor = "gray"
         vLineSize = 1
         vLineType = "dashed"
+        
+        if(maxDay == as.Date(as.yearmon(maxDay, "%b%Y"), frac = 1)){
+          vLineColor = "red"
+          vLineType = "solid"
+          winner = unique(plot.df()[basetime == maxDay & variable == varsInput()][value == min(value)]$name)
+          #print(winner)
+          
+          gg = gg +
+            annotate("label", x = maxDay-15, 
+                     y = plot.df()[basetime == maxDay & variable == varsInput()][value == min(value)]$value+0.005,
+                     label = winner,
+                     label.padding = unit(1, "lines"),
+                     size = 10,
+                     color = plot.df()[basetime == maxDay & variable == varsInput()][value == min(value)]$colors,
+                     hjust = 0.5)
+          # annotate("text", x = maxDay, 
+          #          y = plot.df()[basetime == maxDay & variable %in% c("365d mean")][value == min(value)]$value,
+          #          label = winner,
+          #          color = plot.df()[basetime == maxDay & variable %in% c("365d mean")][value == min(value)]$colors,
+          #          hjust = "outward")
+          
+          
+        } else {
+          gg = gg + geom_vline(aes(xintercept = as.Date(as.yearmon(maxDay, "%b%Y"), frac = 1)), 
+                               linetype = vLineType, 
+                               size = vLineSize,
+                               color = "red")
+        }
+        
+        
+        gg = gg +
+          geom_vline(aes(xintercept = as.Date(maxDay)), 
+                     linetype = vLineType, 
+                     size = vLineSize,
+                     color = vLineColor) +
+          scale_x_date(labels = date_format("%d %b %Y"), 
+                       date_breaks = "1 day", 
+                       expand = expansion(mult = c(0, 0), 
+                                          add = c(0, expand_days)))
+      } else if(indicatorInput() %in% c(minimumRace)){
+        maxDay = unique(plot.df()[day == max(day)]$basetime)
+        vLineColor = "gray"
+        vLineSize = 1
+        vLineType = "dashed"
+        
+        gg = gg +
+          geom_hline(aes(yintercept = 1),
+                     linetype = 2,
+                     size = vLineSize,
+                     color = "red")
         
         if(maxDay == as.Date(as.yearmon(maxDay, "%b%Y"), frac = 1)){
           vLineColor = "red"

@@ -29,9 +29,9 @@ aq_final$name_adv = factor(aq_final$name_adv, levels = unique(aq_final$name_adv)
 
 aq_final = melt(aq_final, id.vars = c("city_id", "basetime", "name", "name_adv"))
 
-aq_final[variable == "no2_rmean1j", variable :="365d moving average"]
-aq_final[variable == "no2_rmean_c", variable :="Composite moving average"]
+aq_final[variable == "no2_rmean1j", variable := "365d moving average"]
+aq_final[variable == "no2_rmean_c", variable := "Composite moving average"]
 
-saveData(aq_final, "prepared.rData")
+saveData(aq_final, "CamsApp/prepared.rData")
 
-print(max(aq_final$basetime))
+source("deploy.r", encoding = "UTF-8")
